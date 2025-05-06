@@ -2,6 +2,7 @@
 # EDI JSON Alchemy
 
 Convert EDI X12 data to JSON format with ease.
+you can try it from:  https://edi-json-alchemy.lovable.app/
 
 ## Features
 
