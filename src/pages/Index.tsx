@@ -4,28 +4,47 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { parseEDItoJSON } from "@/utils/ediParser";
+import { parseEDIWithAPI } from "@/utils/apiClient";
 import { FileUploader } from "@/components/FileUploader";
 import { JsonViewer } from "@/components/JsonViewer";
 import { Header } from "@/components/Header";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const Index = () => {
   const [ediInput, setEdiInput] = useState<string>("");
   const [jsonOutput, setJsonOutput] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [useAPI, setUseAPI] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     if (!ediInput.trim()) {
       setError("Please enter some EDI data");
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const result = parseEDItoJSON(ediInput);
-      setJsonOutput(result);
-      setError(null);
+      if (useAPI) {
+        // Use the API endpoint
+        const result = await parseEDIWithAPI(ediInput);
+        setJsonOutput(JSON.stringify(result, null, 2));
+      } else {
+        // Use client-side parsing
+        const result = parseEDItoJSON(ediInput);
+        setJsonOutput(result);
+      }
     } catch (err) {
-      setError("Failed to parse EDI data. Please check your input and try again.");
+      setError(useAPI 
+        ? "API error: Failed to parse EDI data. Please check your input and try again." 
+        : "Failed to parse EDI data. Please check your input and try again."
+      );
       console.error("Parsing error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,6 +78,16 @@ const Index = () => {
                   onChange={(e) => setEdiInput(e.target.value)}
                 />
               </div>
+              
+              <div className="flex items-center space-x-2 mt-4">
+                <Switch 
+                  id="useApi" 
+                  checked={useAPI}
+                  onCheckedChange={setUseAPI}
+                />
+                <Label htmlFor="useApi">Use API endpoint</Label>
+              </div>
+              
               {error && (
                 <div className="mt-2 text-red-500 text-sm">{error}</div>
               )}
@@ -66,12 +95,14 @@ const Index = () => {
                 <Button 
                   className="bg-blue-800 hover:bg-blue-900 transition-colors"
                   onClick={handleConvert}
+                  disabled={isLoading}
                 >
-                  Convert to JSON
+                  {isLoading ? "Processing..." : "Convert to JSON"}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={clearAll}
+                  disabled={isLoading}
                 >
                   Clear All
                 </Button>
@@ -91,6 +122,7 @@ const Index = () => {
 
       <footer className="container mx-auto p-8 text-center text-gray-600 border-t mt-12">
         <p>EDI JSON Alchemy - Convert EDI X12 to JSON with ease</p>
+        {useAPI && <p className="text-sm mt-1">API Mode: Using server-side parser</p>}
       </footer>
     </div>
   );
