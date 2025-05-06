@@ -1,3 +1,4 @@
+
 /**
  * Parses EDI X12 data into JSON format
  * This is a simplified parser for demonstration purposes
@@ -37,6 +38,8 @@ export function parseEDItoJSON(ediData: string): string {
     let currentTransaction: any = null;
     
     segments.forEach((segment) => {
+      if (!segment.trim()) return; // Skip empty segments
+      
       const elements = segment.split(elementDelimiter);
       const segmentId = elements[0];
       
@@ -60,11 +63,16 @@ export function parseEDItoJSON(ediData: string): string {
           break;
           
         case "ST":
+          // Special handling for 850 Purchase Order
+          const isX12_850 = elements[1] === "850";
+          
           currentTransaction = {
             transactionSetId: elements[1],
             transactionSetControlNumber: elements[2],
+            isX12_850: isX12_850,
             segments: []
           };
+          
           if (currentGroup) {
             currentGroup.transactions.push(currentTransaction);
           }
@@ -74,7 +82,7 @@ export function parseEDItoJSON(ediData: string): string {
           // Store other segments
           const segmentData = {
             id: segmentId,
-            elements: elements.slice(1)
+            elements: elements.slice(1).map(e => e.trim())
           };
           
           if (currentTransaction) {
@@ -111,29 +119,39 @@ function findSegmentDelimiter(ediData: string): string {
 function findElementDelimiter(isaSegment: string): string {
   // In X12, the element delimiter is typically * and is defined in the ISA segment
   // For simplicity, we'll check for common delimiters
-  if (isaSegment.includes('*')) {
-    return '*';
+  const commonDelimiters = ['*', '|', ',', '^'];
+  
+  for (const delimiter of commonDelimiters) {
+    if (isaSegment.includes(delimiter)) {
+      return delimiter;
+    }
   }
+  
   return '*'; // Default
 }
 
 function processISA(elements: string[]): any {
+  // Ensure elements array has sufficient length to avoid undefined access
+  const safeElements = Array(17).fill('').map((_, i) => 
+    elements[i] !== undefined ? elements[i] : ''
+  );
+
   return {
-    authInfoQualifier: elements[1],
-    authInfo: elements[2],
-    securityInfoQualifier: elements[3],
-    securityInfo: elements[4],
-    senderIdQualifier: elements[5],
-    senderId: elements[6],
-    receiverIdQualifier: elements[7],
-    receiverId: elements[8],
-    date: elements[9],
-    time: elements[10],
-    standardsId: elements[11],
-    versionNumber: elements[12],
-    interchangeControlNumber: elements[13],
-    acknowledgmentRequested: elements[14],
-    usageIndicator: elements[15],
-    componentSeparator: elements[16]
+    authInfoQualifier: safeElements[1],
+    authInfo: safeElements[2],
+    securityInfoQualifier: safeElements[3],
+    securityInfo: safeElements[4],
+    senderIdQualifier: safeElements[5],
+    senderId: safeElements[6],
+    receiverIdQualifier: safeElements[7],
+    receiverId: safeElements[8],
+    date: safeElements[9],
+    time: safeElements[10],
+    standardsId: safeElements[11],
+    versionNumber: safeElements[12],
+    interchangeControlNumber: safeElements[13],
+    acknowledgmentRequested: safeElements[14],
+    usageIndicator: safeElements[15],
+    componentSeparator: safeElements[16]
   };
 }

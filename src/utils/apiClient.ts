@@ -14,6 +14,8 @@ const API_URL = process.env.NODE_ENV === 'production'
  */
 export async function parseEDIWithAPI(ediData: string): Promise<any> {
   try {
+    console.log('Sending request to API:', API_URL);
+    
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -22,15 +24,16 @@ export async function parseEDIWithAPI(ediData: string): Promise<any> {
       body: ediData,
     });
 
+    const data = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'API request failed');
+      console.error('API response error:', data);
+      throw new Error(data.details || data.error || 'API request failed');
     }
 
-    const data = await response.json();
     return data.result;
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API client error:', error);
     throw error;
   }
 }

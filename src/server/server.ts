@@ -23,15 +23,33 @@ app.post('/api/parse', (req, res) => {
       });
     }
 
-    const jsonResult = parseEDItoJSON(ediData);
-    return res.json({ 
-      success: true, 
-      result: JSON.parse(jsonResult)  // Convert string JSON to object
-    });
+    // Log input for debugging (truncated for security if in production)
+    console.log('EDI data received:', 
+      process.env.NODE_ENV === 'production' 
+        ? `${ediData.substring(0, 50)}... (truncated)` 
+        : ediData
+    );
+
+    try {
+      const jsonResult = parseEDItoJSON(ediData);
+      // Parse the result to ensure it's valid JSON before sending
+      const parsedResult = JSON.parse(jsonResult);
+      return res.json({ 
+        success: true, 
+        result: parsedResult
+      });
+    } catch (parseError) {
+      console.error('EDI parsing error details:', parseError);
+      return res.status(422).json({ 
+        error: 'Failed to parse EDI data', 
+        details: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+        errorType: parseError instanceof Error ? parseError.constructor.name : 'Unknown'
+      });
+    }
   } catch (error) {
-    console.error('Error parsing EDI data:', error);
+    console.error('Server error:', error);
     return res.status(500).json({ 
-      error: 'Failed to parse EDI data', 
+      error: 'Server error while processing request', 
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
