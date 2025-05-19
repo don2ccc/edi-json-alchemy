@@ -10,18 +10,31 @@ const API_URL = process.env.NODE_ENV === 'production'
 /**
  * Parse EDI data using the API
  * @param ediData The EDI data to parse
+ * @param segmentDelimiter Optional segment delimiter
+ * @param elementDelimiter Optional element delimiter
  * @returns A promise that resolves to the parsed JSON result
  */
-export async function parseEDIWithAPI(ediData: string): Promise<any> {
+export async function parseEDIWithAPI(
+  ediData: string, 
+  segmentDelimiter?: string, 
+  elementDelimiter?: string
+): Promise<any> {
   try {
     console.log('Sending request to API:', API_URL);
+    
+    // Create request body with delimiters if provided
+    const requestBody = {
+      ediData,
+      segmentDelimiter,
+      elementDelimiter
+    };
     
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': 'application/json',
       },
-      body: ediData,
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();

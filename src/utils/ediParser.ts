@@ -1,10 +1,13 @@
-
 /**
  * Parses EDI X12 data into JSON format
  * This is a simplified parser for demonstration purposes
  * A production parser would need to handle all EDI segments and elements properly
  */
-export function parseEDItoJSON(ediData: string): string {
+export function parseEDItoJSON(
+  ediData: string, 
+  customSegmentDelimiter?: string, 
+  customElementDelimiter?: string
+): string {
   try {
     // Remove any leading/trailing whitespace
     const trimmedEdi = ediData.trim();
@@ -14,9 +17,8 @@ export function parseEDItoJSON(ediData: string): string {
       throw new Error("EDI data is empty");
     }
     
-    // Split the EDI data into segments (typically delimited by ~)
-    // This is a simplification - real EDI might have different delimiters
-    const segmentDelimiter = findSegmentDelimiter(trimmedEdi);
+    // Use custom delimiters if provided, otherwise detect them
+    const segmentDelimiter = customSegmentDelimiter || findSegmentDelimiter(trimmedEdi);
     const segments = trimmedEdi.split(segmentDelimiter).filter(Boolean);
     
     if (segments.length === 0) {
@@ -24,7 +26,7 @@ export function parseEDItoJSON(ediData: string): string {
     }
     
     // Find the element delimiter (typically *) from the ISA segment
-    const elementDelimiter = findElementDelimiter(segments[0]);
+    const elementDelimiter = customElementDelimiter || findElementDelimiter(segments[0]);
     
     // Process each segment
     const result: any = {

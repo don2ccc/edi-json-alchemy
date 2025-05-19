@@ -9,17 +9,18 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.text({ type: '*/*', limit: '10mb' })); // Accept raw text for EDI data
+app.use(bodyParser.json({ limit: '10mb' })); // Accept JSON for EDI data with delimiters
 app.use(express.json());
 
 // API endpoint to parse EDI data
 app.post('/api/parse', (req, res) => {
   try {
-    const ediData = req.body;
+    // Extract data and delimiters from request
+    const { ediData, segmentDelimiter, elementDelimiter } = req.body;
     
     if (!ediData || typeof ediData !== 'string') {
       return res.status(400).json({ 
-        error: 'Invalid input. Please provide EDI data as plain text in the request body.' 
+        error: 'Invalid input. Please provide EDI data in the request body.' 
       });
     }
 
@@ -29,9 +30,17 @@ app.post('/api/parse', (req, res) => {
         ? `${ediData.substring(0, 50)}... (truncated)` 
         : ediData
     );
+    
+    if (segmentDelimiter) {
+      console.log('Using custom segment delimiter:', segmentDelimiter);
+    }
+    
+    if (elementDelimiter) {
+      console.log('Using custom element delimiter:', elementDelimiter);
+    }
 
     try {
-      const jsonResult = parseEDItoJSON(ediData);
+      const jsonResult = parseEDItoJSON(ediData, segmentDelimiter, elementDelimiter);
       // Parse the result to ensure it's valid JSON before sending
       const parsedResult = JSON.parse(jsonResult);
       return res.json({ 
